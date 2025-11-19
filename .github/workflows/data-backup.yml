@@ -1,0 +1,73 @@
+name: Data Backup
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      objects:
+        description: 'Comma-separated list of objects to backup (or leave empty for all)'
+        required: false
+        type: string
+
+jobs:
+  backup-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+          sf --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create .env file
+        env:
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SF_SECURITY_TOKEN: ${{ secrets.SF_SECURITY_TOKEN }}
+          SF_LOGIN_URL: ${{ secrets.SF_LOGIN_URL }}
+        run: |
+          cat > .env << EOF
+          SF_USERNAME=$SF_USERNAME
+          SF_PASSWORD=$SF_PASSWORD
+          SF_SECURITY_TOKEN=$SF_SECURITY_TOKEN
+          SF_LOGIN_URL=$SF_LOGIN_URL
+          LOG_LEVEL=info
+          EOF
+
+      - name: Extract data
+        run: |
+          node src/services/data-extractor.js
+
+      - name: Commit backup
+        env:
+          GIT_AUTHOR_NAME: ${{ secrets.GIT_AUTHOR_NAME }}
+          GIT_AUTHOR_EMAIL: ${{ secrets.GIT_AUTHOR_EMAIL }}
+        run: |
+          git config user.name "$GIT_AUTHOR_NAME"
+          git config user.email "$GIT_AUTHOR_EMAIL"
+          git add data/extracts/
+          git commit -m "[AUTO] Data backup at $(date -u +"%Y-%m-%dT%H:%M:%SZ")" || echo "No changes to commit"
+          git push
+
+      - name: Create backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-backup-${{ github.run_number }}
+          path: data/extracts/
+          retention-days: 30

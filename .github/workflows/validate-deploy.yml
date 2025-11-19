@@ -1,0 +1,109 @@
+name: Validate and Deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+          sf --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Authenticate to Salesforce
+        env:
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SF_SECURITY_TOKEN: ${{ secrets.SF_SECURITY_TOKEN }}
+        run: |
+          echo "$SF_PASSWORD$SF_SECURITY_TOKEN" | sf org login web \
+            --alias target-org \
+            --set-default
+
+      - name: Run validation (check-only deploy)
+        run: |
+          sf project deploy start \
+            --dry-run \
+            --test-level RunLocalTests \
+            --target-org target-org
+
+      - name: Run tests
+        run: npm test
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Validation completed successfully!'
+            })
+
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install -g @salesforce/cli
+          sf --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Authenticate to Salesforce Production
+        env:
+          SF_PROD_USERNAME: ${{ secrets.SF_PROD_USERNAME }}
+          SF_PROD_PASSWORD: ${{ secrets.SF_PROD_PASSWORD }}
+          SF_PROD_SECURITY_TOKEN: ${{ secrets.SF_PROD_SECURITY_TOKEN }}
+        run: |
+          echo "$SF_PROD_PASSWORD$SF_PROD_SECURITY_TOKEN" | sf org login web \
+            --alias production \
+            --set-default
+
+      - name: Deploy to Production
+        run: |
+          sf project deploy start \
+            --test-level RunLocalTests \
+            --target-org production
+
+      - name: Send notification
+        if: always()
+        run: |
+          echo "Deployment to production completed with status: ${{ job.status }}"

@@ -1,0 +1,39 @@
+# Salesforce
+.sfdx/
+.localdevserver/
+.sf/
+*.log
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+config/local.json
+
+# Data backups (can be large)
+data/backups/*.json
+data/temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+
+# Logs
+logs/
+*.log

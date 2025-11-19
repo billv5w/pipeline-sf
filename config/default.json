@@ -1,0 +1,66 @@
+{
+  "pipeline": {
+    "name": "Salesforce Event-Driven Pipeline",
+    "version": "1.0.0",
+    "enableMetadataTracking": true,
+    "enableDataTracking": true,
+    "autoCommit": true,
+    "autoDeploy": false
+  },
+  "monitoring": {
+    "metadataPollingInterval": 300000,
+    "dataPollingInterval": 60000,
+    "maxRetries": 3,
+    "retryDelay": 5000
+  },
+  "events": {
+    "platformEvents": {
+      "enabled": true,
+      "channel": "/event/Metadata_Change__e"
+    },
+    "changeDataCapture": {
+      "enabled": true,
+      "objects": [
+        "Account",
+        "Contact",
+        "Opportunity",
+        "Lead"
+      ]
+    }
+  },
+  "deployment": {
+    "testLevel": "RunLocalTests",
+    "checkOnly": false,
+    "ignoreWarnings": false,
+    "rollbackOnError": true
+  },
+  "dataExtraction": {
+    "format": "json",
+    "compression": true,
+    "includeRecordTypes": true,
+    "maxRecordsPerFile": 10000,
+    "objects": [
+      "Account",
+      "Contact",
+      "Opportunity",
+      "Lead",
+      "Case"
+    ]
+  },
+  "git": {
+    "autoCommit": true,
+    "commitMessagePrefix": "[AUTO]",
+    "branchPrefix": "auto/",
+    "pushOnCommit": false
+  },
+  "notifications": {
+    "slack": {
+      "enabled": false,
+      "webhookUrl": ""
+    },
+    "email": {
+      "enabled": false,
+      "recipients": []
+    }
+  }
+}
