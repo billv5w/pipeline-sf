@@ -10,7 +10,10 @@
     "extract-data": "node src/services/data-extractor.js",
     "deploy": "node src/pipeline/deploy.js",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
+    "lint": "eslint src/ tests/ --ext .js",
+    "lint:fix": "eslint src/ tests/ --ext .js --fix",
     "setup": "node scripts/setup.js"
   },
   "keywords": [
@@ -34,7 +37,8 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "@types/node": "^20.10.5"
+    "@types/node": "^20.10.5",
+    "eslint": "^8.56.0"
   },
   "engines": {
     "node": ">=18.0.0"

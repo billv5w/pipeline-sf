@@ -46,10 +46,16 @@ jobs:
           SF_SECURITY_TOKEN: ${{ secrets.SF_SECURITY_TOKEN }}
           SF_LOGIN_URL: ${{ secrets.SF_LOGIN_URL }}
         run: |
-          echo "$SF_PASSWORD$SF_SECURITY_TOKEN" | sf org login web \
-            --alias pipeline-org \
-            --set-default \
-            --instance-url $SF_LOGIN_URL
+          # Use SFDX auth URL if available, otherwise username/password
+          if [ -n "${{ secrets.SF_AUTH_URL }}" ]; then
+            echo "${{ secrets.SF_AUTH_URL }}" > authurl.txt
+            sf org login sfdx-url --sfdx-url-file authurl.txt --alias pipeline-org --set-default
+            rm authurl.txt
+          else
+            # Fallback to username/password (less secure)
+            echo "Authenticating with username/password..."
+            sf org login user --username "$SF_USERNAME" --password "${SF_PASSWORD}${SF_SECURITY_TOKEN}" --instance-url "$SF_LOGIN_URL" --alias pipeline-org --set-default --no-prompt
+          fi
 
       - name: Retrieve metadata from org
         run: |

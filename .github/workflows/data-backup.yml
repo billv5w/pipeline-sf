@@ -35,6 +35,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Authenticate to Salesforce
+        env:
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+          SF_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SF_SECURITY_TOKEN: ${{ secrets.SF_SECURITY_TOKEN }}
+          SF_LOGIN_URL: ${{ secrets.SF_LOGIN_URL }}
+        run: |
+          if [ -n "${{ secrets.SF_AUTH_URL }}" ]; then
+            echo "${{ secrets.SF_AUTH_URL }}" > authurl.txt
+            sf org login sfdx-url --sfdx-url-file authurl.txt --alias backup-org --set-default
+            rm authurl.txt
+          else
+            sf org login user --username "$SF_USERNAME" --password "${SF_PASSWORD}${SF_SECURITY_TOKEN}" --instance-url "$SF_LOGIN_URL" --alias backup-org --set-default --no-prompt
+          fi
+
       - name: Create .env file
         env:
           SF_USERNAME: ${{ secrets.SF_USERNAME }}
